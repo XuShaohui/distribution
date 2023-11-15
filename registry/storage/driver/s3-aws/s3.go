@@ -35,12 +35,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-
 	dcontext "github.com/docker/distribution/context"
 	"github.com/docker/distribution/registry/client/transport"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/base"
 	"github.com/docker/distribution/registry/storage/driver/factory"
+	log "github.com/sirupsen/logrus"
 )
 
 const driverName = "s3aws"
@@ -587,6 +587,21 @@ func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (sto
 		if err != nil {
 			return nil, parseError(path, err)
 		}
+
+		if resp == nil {
+			log.WithFields(log.Fields{
+				"s3": "list-resp",
+			}).Info("resp is nil")
+		}
+
+		if resp.IsTruncated == nil {
+			log.WithFields(log.Fields{
+				"s3": "list-resp",
+			}).Info("resp is-truncated field is nil")
+			tmpV := false
+			resp.IsTruncated = &tmpV
+		}
+
 		allParts = append(allParts, resp.Parts...)
 		for *resp.IsTruncated {
 			resp, err = d.S3.ListParts(&s3.ListPartsInput{
